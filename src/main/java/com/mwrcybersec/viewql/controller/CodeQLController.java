@@ -10,6 +10,7 @@ import com.mwrcybersec.viewql.config.CodeQLConfig;
 import org.springframework.ui.Model;
 import java.util.*;
 import com.mwrcybersec.viewql.types.*;
+import com.mwrcybersec.viewql.config.DatabaseConfig;
 
 import java.nio.file.Path;
 import java.util.UUID;
@@ -23,6 +24,9 @@ public class CodeQLController {
 
     @Autowired
     private CodeQLConfig codeQLConfig;
+
+    @Autowired
+    private DatabaseConfig databaseConfig;
 
 
     @PostMapping("/run-diagnostics")
@@ -50,7 +54,7 @@ public class CodeQLController {
     }
 
     @PostMapping("/create-database")
-    public ResponseEntity<String> createDatabase(
+    public ResponseEntity<?> createDatabase(
             @RequestParam("sourceCode") MultipartFile sourceCode,
             @RequestParam("language") String language,
             @RequestParam(required = false) String buildCommand,
@@ -76,22 +80,21 @@ public class CodeQLController {
             // Extract the zip file
             fileService.extractZip(sourceCode, extractedPath.toString());
 
-            // Create the CodeQL database
             CodeQLEntryPoint codeQL = new CodeQLEntryPoint.Builder()
                 .sourceRoot(extractedPath)
                 .dbPath(dbPath)
                 .language(language)
-                .buildCommand(buildCommand)
-                .threads(threads)
-                .ram(ram)
+                .threads(threads != -1 ? threads : 4)
+                .ram(ram != -1 ? ram : 8192)
+                .databaseConfig(databaseConfig)
                 .build();
 
             int result = codeQL.createDatabase();
             
-            // Cleanup source files after database creation
-            fileService.cleanup(extractedPath);
-            
-            return ResponseEntity.ok("Database created at: " + dbPath + " with status: " + result);
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("message", "Database created successfully");
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             // Cleanup on error
             try {

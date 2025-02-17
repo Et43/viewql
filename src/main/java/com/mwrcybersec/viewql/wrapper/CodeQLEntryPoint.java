@@ -3,21 +3,24 @@ package com.mwrcybersec.viewql.wrapper;
 import com.semmle.cli2.CodeQL;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.Objects;
+import java.util.UUID;
 import java.nio.file.Files;
 import com.mwrcybersec.viewql.types.*;
+import com.mwrcybersec.viewql.config.DatabaseConfig;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.File;
+import java.io.*;
 
 public class CodeQLEntryPoint {
     private final Path sourceRoot;
-    private final Path dbPath;
+    private Path dbPath;  // Changed to non-final since we update it
     private final String language;
     private String buildCommand;
     private int threads = -1;
     private int ram = -1;
+    private final DatabaseConfig databaseConfig;  // Added field
 
     private CodeQLEntryPoint(Builder builder) {
         this.sourceRoot = Objects.requireNonNull(builder.sourceRoot, "Source root cannot be null");
@@ -26,6 +29,7 @@ public class CodeQLEntryPoint {
         this.buildCommand = builder.buildCommand;
         this.threads = builder.threads;
         this.ram = builder.ram;
+        this.databaseConfig = Objects.requireNonNull(builder.databaseConfig, "Database config cannot be null");
     }
 
     public static String getCodeQLVersion() {
@@ -174,6 +178,29 @@ public class CodeQLEntryPoint {
 
     public int createDatabase() {
         try {
+
+            if (databaseConfig == null || databaseConfig.getStorageLocation() == null) {
+                throw new IllegalStateException("Database storage location not configured");
+            }
+
+            // Create unique database ID and directory
+            String dbId = UUID.randomUUID().toString();
+            Path dbDir = Path.of(databaseConfig.getStorageLocation(), dbId, "db");
+            Files.createDirectories(dbDir);
+            
+            // Store database metadata
+            Path metadataFile = dbDir.getParent().resolve("metadata.json");
+            String metadata = String.format(
+                "{\"id\": \"%s\", \"language\": \"%s\", \"created\": \"%s\"}",
+                dbId,
+                language,
+                java.time.Instant.now()
+            );
+            Files.writeString(metadataFile, metadata);
+            
+            // Update dbPath to use the new location
+            this.dbPath = dbDir;
+
             Path codeqlDist = Path.of(System.getProperty("CODEQL_DIST"));
             ProcessBuilder pb = new ProcessBuilder(
                 codeqlDist.resolve("codeql.exe").toString(),
@@ -182,7 +209,7 @@ public class CodeQLEntryPoint {
                 "--build-mode=none",
                 "--language=" + language,
                 "--source-root=" + sourceRoot.toAbsolutePath(),
-                dbPath.toAbsolutePath().toString()
+                this.dbPath.toAbsolutePath().toString()
             );
             
             // Set environment variables for the process
@@ -233,6 +260,99 @@ public class CodeQLEntryPoint {
         }
     }
 
+
+    public static int runSecurityScan(Path dbPath) {
+        try {
+            // Verify database path exists
+            if (!Files.exists(dbPath)) {
+                throw new RuntimeException("Database path does not exist: " + dbPath);
+            }
+    
+            // Verify CODEQL_DIST is set
+            String codeqlDistStr = System.getProperty("CODEQL_DIST");
+            if (codeqlDistStr == null || codeqlDistStr.isEmpty()) {
+                throw new RuntimeException("CODEQL_DIST environment variable not set");
+            }
+    
+            Path codeqlDist = Path.of(codeqlDistStr);
+            Path codeqlExe = codeqlDist.resolve("codeql.exe");
+            
+            // Verify CodeQL executable exists
+            if (!Files.exists(codeqlExe)) {
+                throw new RuntimeException("CodeQL executable not found at: " + codeqlExe);
+            }
+    
+            // Verify query suite exists
+            Path querySuite = codeqlDist.resolve("java-security-extended.qls");
+    
+            // Create results file path
+            Path resultsFile = dbPath.getParent().resolve("results.sarif");
+    
+            ProcessBuilder pb = new ProcessBuilder(
+                codeqlExe.toString(),
+                "database",
+                "analyze",
+                "--format=sarif-latest",
+                "--output=" + resultsFile.toString(),
+                dbPath.toString(),
+                "codeql/java-queries:codeql-suites/java-security-extended.qls",
+                "--download"
+            );
+            
+            // Set environment variables for the process
+            Map<String, String> env = pb.environment();
+            env.put("CODEQL_DIST", codeqlDistStr);
+            env.put("CODEQL_JAVA_HOME", System.getProperty("CODEQL_JAVA_HOME"));
+            env.put("CODEQL_PLATFORM", System.getProperty("CODEQL_PLATFORM", "win64"));
+            env.put("PATH", codeqlDistStr + File.pathSeparator + env.get("PATH"));
+            
+            // Debug output
+            System.out.println("=== CodeQL Security Scan ===");
+            System.out.println("Database Path: " + dbPath);
+            System.out.println("Results File: " + resultsFile);
+            System.out.println("Command: " + String.join(" ", pb.command()));
+            System.out.println("Environment:");
+            env.forEach((k, v) -> System.out.println(k + "=" + v));
+            System.out.println("============================");
+            
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            
+            // Capture output
+            StringBuilder output = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                    System.out.println(line);
+                }
+            }
+            
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                String errorMsg = String.format(
+                    "Security scan failed (exit code %d):\nCommand: %s\nOutput: %s",
+                    exitCode,
+                    String.join(" ", pb.command()),
+                    output.toString()
+                );
+                throw new RuntimeException(errorMsg);
+            }
+            
+            // Verify results file was created
+            if (!Files.exists(resultsFile)) {
+                throw new RuntimeException("Security scan completed but results file was not created at: " + resultsFile);
+            }
+            
+            return exitCode;
+        } catch (Exception e) {
+            String msg = String.format("Error running security scan on database %s: %s", dbPath, e.getMessage());
+            System.err.println(msg);
+            e.printStackTrace();
+            throw new RuntimeException(msg, e);
+        }
+    }
+
     public static class Builder {
         private Path sourceRoot;
         private Path dbPath;
@@ -240,6 +360,7 @@ public class CodeQLEntryPoint {
         private String buildCommand;
         private int threads = -1;
         private int ram = -1;
+        private DatabaseConfig databaseConfig;  // Added field
 
         public Builder sourceRoot(Path sourceRoot) {
             this.sourceRoot = sourceRoot;
@@ -268,6 +389,11 @@ public class CodeQLEntryPoint {
 
         public Builder ram(int ram) {
             this.ram = ram;
+            return this;
+        }
+
+        public Builder databaseConfig(DatabaseConfig databaseConfig) {  // Added method
+            this.databaseConfig = databaseConfig;
             return this;
         }
 

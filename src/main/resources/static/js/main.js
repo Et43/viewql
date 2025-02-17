@@ -4,7 +4,7 @@ document.getElementById('createDbForm').addEventListener('submit', function(e) {
     const formData = new FormData(e.target);
     const statusDiv = document.getElementById('status');
     
-    statusDiv.innerHTML = '<div class="alert alert-info">Creating database...</div>';
+    statusDiv.innerHTML = '<div class="alert alert-info">Creating database... (This might take a minute)</div>';
     
     fetch('/api/codeql/create-database', {
         method: 'POST',
