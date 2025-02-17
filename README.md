@@ -13,7 +13,7 @@ ViewQL is a web-based interface for running CodeQL security scans on Java applic
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/viewql.git
+   git clone https://github.com/Et43/viewql.git
    cd viewql
    ```
 
