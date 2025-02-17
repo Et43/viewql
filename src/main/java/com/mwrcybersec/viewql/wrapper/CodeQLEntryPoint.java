@@ -201,6 +201,8 @@ public class CodeQLEntryPoint {
             // Update dbPath to use the new location
             this.dbPath = dbDir;
 
+
+            // GOD SAVE ME FUCK IT WE GO IN RAW
             Path codeqlDist = Path.of(System.getProperty("CODEQL_DIST"));
             ProcessBuilder pb = new ProcessBuilder(
                 codeqlDist.resolve("codeql.exe").toString(),
