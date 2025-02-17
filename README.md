@@ -64,7 +64,7 @@ mvn spring-boot:run
    - Direct run: http://localhost:8080
    - Tomcat deployment: http://localhost:8080/viewql
 
-2. Test the setup by running a scan on a sample Java project
+2. Navigate to the diagnostics page and run a simple diagnostics scan to ensure everything is working.
 
 ## Common Issues
 
