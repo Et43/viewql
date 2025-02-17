@@ -35,13 +35,17 @@
                                 <label class="form-label">Source Code (ZIP file)</label>
                                 <input type="file" class="form-control" name="sourceCode" accept=".zip" required>
                             </div>
+                            <div class="md-3">
+                                <label class="form-label">Database Name</label>
+                                <input type="text" class="form-control" name="databasename" required>
+                            </div>
                             <div class="mb-3">
                                 <label class="form-label">Language</label>
                                 <select class="form-select" name="language" required>
                                     <option value="java">Java</option>
-                                    <option value="cpp">C++</option>
-                                    <option value="javascript">JavaScript</option>
-                                    <option value="python">Python</option>
+                                    <option value="cpp">C++ (WIP)</option>
+                                    <option value="javascript">JavaScript (WIP)</option>
+                                    <option value="python">Python (WIP)</option>
                                 </select>
                             </div>
                             <div class="mb-3">
@@ -50,11 +54,11 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Threads</label>
-                                <input type="number" class="form-control" name="threads">
+                                <input type="number" class="form-control" name="threads" value="4">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">RAM (GB)</label>
-                                <input type="number" class="form-control" name="ram">
+                                <input type="number" class="form-control" name="ram" value="2045">
                             </div>
                             <button type="submit" class="btn btn-primary">Create Database</button>
                         </form>

@@ -57,6 +57,7 @@ public class CodeQLController {
     public ResponseEntity<?> createDatabase(
             @RequestParam("sourceCode") MultipartFile sourceCode,
             @RequestParam("language") String language,
+            @RequestParam("databasename") String databaseName,
             @RequestParam(required = false) String buildCommand,
             @RequestParam(required = false, defaultValue = "-1") int threads,
             @RequestParam(required = false, defaultValue = "-1") int ram) {
@@ -66,7 +67,7 @@ public class CodeQLController {
         
         try {
             // Create unique directories for source and database
-            String uniqueId = UUID.randomUUID().toString();
+            String uniqueId = databaseName + "-" + UUID.randomUUID().toString();
             String baseDir = System.getProperty("java.io.tmpdir") + "/viewql/" + uniqueId;
             extractedPath = Path.of(baseDir + "/source");
             dbPath = Path.of(baseDir + "/db");
@@ -87,6 +88,7 @@ public class CodeQLController {
                 .threads(threads != -1 ? threads : 4)
                 .ram(ram != -1 ? ram : 8192)
                 .databaseConfig(databaseConfig)
+                .databaseName(databaseName)
                 .build();
 
             int result = codeQL.createDatabase();

@@ -15,12 +15,13 @@ import java.io.*;
 
 public class CodeQLEntryPoint {
     private final Path sourceRoot;
-    private Path dbPath;  // Changed to non-final since we update it
+    private Path dbPath;  // what is a path really? - Albert einstein 2
     private final String language;
     private String buildCommand;
     private int threads = -1;
     private int ram = -1;
-    private final DatabaseConfig databaseConfig;  // Added field
+    private final DatabaseConfig databaseConfig;
+    private final String databaseName;
 
     private CodeQLEntryPoint(Builder builder) {
         this.sourceRoot = Objects.requireNonNull(builder.sourceRoot, "Source root cannot be null");
@@ -29,6 +30,7 @@ public class CodeQLEntryPoint {
         this.buildCommand = builder.buildCommand;
         this.threads = builder.threads;
         this.ram = builder.ram;
+        this.databaseName = builder.databaseName;
         this.databaseConfig = Objects.requireNonNull(builder.databaseConfig, "Database config cannot be null");
     }
 
@@ -184,7 +186,7 @@ public class CodeQLEntryPoint {
             }
 
             // Create unique database ID and directory
-            String dbId = UUID.randomUUID().toString();
+            String dbId = databaseName + "-" + UUID.randomUUID().toString(); // OS Command Injection go brrrrrrr
             Path dbDir = Path.of(databaseConfig.getStorageLocation(), dbId, "db");
             Files.createDirectories(dbDir);
             
@@ -202,7 +204,7 @@ public class CodeQLEntryPoint {
             this.dbPath = dbDir;
 
 
-            // GOD SAVE ME FUCK IT WE GO IN RAW
+            // GOD SAVE ME FUCK IT WE GO IN RAW - The wrath of a righteous man 2k25
             Path codeqlDist = Path.of(System.getProperty("CODEQL_DIST"));
             ProcessBuilder pb = new ProcessBuilder(
                 codeqlDist.resolve("codeql.exe").toString(),
@@ -362,7 +364,8 @@ public class CodeQLEntryPoint {
         private String buildCommand;
         private int threads = -1;
         private int ram = -1;
-        private DatabaseConfig databaseConfig;  // Added field
+        private DatabaseConfig databaseConfig;
+        private String databaseName;
 
         public Builder sourceRoot(Path sourceRoot) {
             this.sourceRoot = sourceRoot;
@@ -371,6 +374,11 @@ public class CodeQLEntryPoint {
 
         public Builder dbPath(Path dbPath) {
             this.dbPath = dbPath;
+            return this;
+        }
+
+        public Builder databaseName(String dbname){
+            this.databaseName = dbname;
             return this;
         }
 
