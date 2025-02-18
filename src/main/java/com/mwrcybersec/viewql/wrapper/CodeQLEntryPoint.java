@@ -147,6 +147,7 @@ public class CodeQLEntryPoint {
             } else {
                 System.setProperty("CODEQL_PLATFORM", "ubuntu22");
                 System.setProperty("CODEQL_PLATFORM_DLL_EXTENSION", ".so");
+            }
             
             // Set Java home
             String javaHome = System.getProperty("java.home");
