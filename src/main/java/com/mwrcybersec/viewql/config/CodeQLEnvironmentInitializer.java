@@ -56,7 +56,7 @@ public class CodeQLEnvironmentInitializer {
         
         // Verify paths exist
         Path codeqlDist = Path.of(System.getProperty("CODEQL_DIST"));
-        Path codeqlExe = codeqlDist.resolve("codeql.exe");
+        Path codeqlExe = codeqlDist.resolve("codeql");
         Path querySuite = codeqlDist.resolve("java-security-extended.qls");
         
         if (!codeqlExe.toFile().exists()) {
