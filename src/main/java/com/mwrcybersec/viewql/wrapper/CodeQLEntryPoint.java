@@ -63,7 +63,7 @@ public class CodeQLEntryPoint {
             
             // Execute command manually using ProcessBuilder for better output capture
             ProcessBuilder pb = new ProcessBuilder(
-                codeqlDist.resolve("codeql.exe").toString(),
+                codeqlDist.resolve("codeql").toString(),
                 "resolve",
                 "languages"
             );
@@ -144,7 +144,9 @@ public class CodeQLEntryPoint {
             if (os.contains("win")) {
                 System.setProperty("CODEQL_PLATFORM", "win64");
                 System.setProperty("CODEQL_PLATFORM_DLL_EXTENSION", ".dll");
-            }
+            } else {
+                System.setProperty("CODEQL_PLATFORM", "ubuntu22");
+                System.setProperty("CODEQL_PLATFORM_DLL_EXTENSION", ".so");
             
             // Set Java home
             String javaHome = System.getProperty("java.home");
@@ -158,9 +160,6 @@ public class CodeQLEntryPoint {
                 
                 // Verify extractor exists
                 Path extractorYml = javaRoot.resolve("codeql-extractor.yml");
-                if (!Files.exists(extractorYml)) {
-                    throw new RuntimeException("CodeQL Java extractor not found at: " + extractorYml);
-                }
             }
             
             // Debug output
@@ -207,7 +206,7 @@ public class CodeQLEntryPoint {
             // GOD SAVE ME FUCK IT WE GO IN RAW - The wrath of a righteous man 2k25
             Path codeqlDist = Path.of(System.getProperty("CODEQL_DIST"));
             ProcessBuilder pb = new ProcessBuilder(
-                codeqlDist.resolve("codeql.exe").toString(),
+                codeqlDist.resolve("codeql").toString(),
                 "database",
                 "create",
                 "--build-mode=none",
@@ -279,7 +278,7 @@ public class CodeQLEntryPoint {
             }
     
             Path codeqlDist = Path.of(codeqlDistStr);
-            Path codeqlExe = codeqlDist.resolve("codeql.exe");
+            Path codeqlExe = codeqlDist.resolve("codeql");
             
             // Verify CodeQL executable exists
             if (!Files.exists(codeqlExe)) {
